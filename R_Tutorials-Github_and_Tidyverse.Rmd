@@ -1,10 +1,10 @@
 ---
-title: "R Tutorial: Github and Tidyverse"
+title: "R Tutorial: Github"
 author: Chris LeBoa 
 date: 05082019
 output: html_notebook
 ---
-# Github and Tidyverse
+# Github 
 
 
 This tutorial was taken from our coding club from Univ of Ettinburough
@@ -29,8 +29,12 @@ This project is synced with Github
   
   I moved this file to the git folder on my computer but it is still not working 
   
+  Ok it seems to be working now - i followed a lot of help prompts and need to make sure to save the git repository as the same as the repository where I am already working on docs 
+  When making changes - commit to get local version control but then push for new version control on the web 
   
+  Use fork to copy a github repository to anotehr github account
   
+
 
 
 ```{r}
