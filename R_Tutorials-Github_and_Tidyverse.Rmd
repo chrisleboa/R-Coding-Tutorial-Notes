@@ -27,6 +27,9 @@ This project is synced with Github
   
   I am having problems with Git not wanting to see the files I am working on 
   
+  I moved this file to the git folder on my computer but it is still not working 
+  
+  
   
 
 
