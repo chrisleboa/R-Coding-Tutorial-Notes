@@ -1,0 +1,215 @@
+---
+title: 'R Tutorials: Intro to R on Code Club'
+author: "Chris LeBoa"
+date: "8/2/2019"
+output: html_notebook
+---
+### What this is
+  I have taken a year of classes in stats that use R but given the ample time I have in Nepal I wanted to check the holes that I have in my understanding of the language and best practices in it. 
+
+#Introduction to R 
+  
+  
+  Do not put spaces in row names from Excel 
+ 
+  use <- to assign variables -- you can get this  function by doing (option and -) at once 
+  
+  When go to a file can use (option , command, c) to get the path name instead of just the file /Users/ChrisLeBoa/Desktop/Learning R Better/IntroTutorials/data/CC-1-RBasics-master/edidiv.csv
+  
+```{r}
+library(dplyr)
+
+getwd() #shows the directory things will be save into/ where I am working 
+edidiv <- read.csv("/Users/ChrisLeBoa/Desktop/Learning R Better/IntroTutorials/data/CC-1-RBasics-master/edidiv.csv") #File path of where the data is stored 
+
+head(edidiv$taxonGroup)     # Displays the first few rows of this column only
+class(edidiv$taxonGroup)    # Tells you what type of variable we're dealing with: it's character now but we want it to be a factor
+
+edidiv$taxonGroup <- as.factor(edidiv$taxonGroup) #turn data categorical
+
+
+```
+  # Types of data 
+           categorical = factor 
+           Numbers = nummeric 
+           Whole Numbers = integer
+           Strings = character 
+  
+  Use $ after the df name to get a single object 
+  dim () shows # of rows and columns 
+  
+  
+  #Splitting Dataset 
+  
+  use filter and will seperate dataset based on groups 
+  
+```{r}
+#split data by group
+summary(edidiv$taxonGroup)
+Beetle <- filter(edidiv, taxonGroup == "Beetle")
+Bird <- filter(edidiv, taxonGroup == "Bird") 
+Butterfly <- filter(edidiv, taxonGroup == "Butterfly") 
+Dragonfly <- filter(edidiv, taxonGroup == "Dragonfly") 
+Flowering.Plants <- filter(edidiv, taxonGroup == "Flowering.Plants") 
+Lichen <- filter(edidiv, taxonGroup == "Lichen") 
+Fungus <- filter(edidiv, taxonGroup == "Fungus") 
+Liverwort <- filter(edidiv, taxonGroup == "Liverwort") 
+Hymenopteran <- filter(edidiv, taxonGroup == "Hymenopteran")
+Mammal <- filter(edidiv, taxonGroup == "Mammal") 
+Mollusc <- filter(edidiv, taxonGroup == "Mollusc") 
+```
+Unique shows the number of uniwue variables 
+length counts them
+
+
+```{r, include=FALSE}
+#Code stores each variable as unique species
+a <- length(unique(Beetle$taxonName))
+b <- length(unique(Bird$taxonName))
+c <- length(unique(Butterfly$taxonName))
+d <- length(unique(Dragonfly$taxonName))
+e <- length(unique(Flowering.Plants$taxonName))
+f <- length(unique(Fungus$taxonName))
+g <- length(unique(Hymenopteran$taxonName))
+h <- length(unique(Lichen$taxonName))
+i <- length(unique(Liverwort$taxonName))
+j <- length(unique(Mammal$taxonName))
+k <- length(unique(Mollusc$taxonName))
+
+```
+#Plotting Data
+
+use c and add variable names to concatenate (add them all to one list)
+
+Once add them all to list need to make names for each - making sure to keep in the same order is important
+
+using barplot will make a plot
+can use help to get help
+
+By using png() it will save a photo of your plot
+```{r}
+biodiv <- c(a,b,c,d,e,f,g,h,i,j,k)     # We are chaining together all the values; pay attention to the object names you have calculated and their order
+names(biodiv) <- c("Beetle",
+                   "Bird",
+                   "Butterfly",
+                   "Dragonfly",
+                   "Flowering.Plants",
+                   "Fungus",
+                   "Hymenopteran",
+                   "Lichen",
+                   "Liverwort",
+                   "Mammal",
+                   "Mollusc")
+
+barplot(biodiv)
+
+#Save Barplot to computer
+png("barplot.png", width=1600, height=600)  # look up the help for this function: you can customise the size and resolution of the image
+barplot(biodiv, xlab="Taxa", ylab="Number of species", ylim=c(0,600), cex.names= 1.5, cex.axis=1.5, cex.lab=1.5)
+dev.off()
+# The cex code increases the font size when greater than one (and decreases it when less than one). 
+```
+#Dataframes 
+
+Vectors are good at dealing with one set of values but dataframes are good for multiple types of values 
+
+##Important to always keep copy of raw data and then save manipulations as a seperate file 
+
+use write.csv or write_excel to do that 
+
+use function data.frame to turn list of vectors into a dataframe.  
+```{r}
+# Creating an object called "taxa" that contains all the taxa names
+taxa <- c("Beetle",
+          "Bird",
+          "Butterfly",
+          "Dragonfly",
+          "Flowering.Plants",
+          "Fungus",
+          "Hymenopteran",
+          "Lichen",
+          "Liverwort",
+          "Mammal",
+          "Mollusc")
+# Turning this object into a factor, i.e. a categorical variable
+taxa_f <- factor(taxa)
+
+# Combining all the values for the number of species in an object called richness
+richness <- c(a,b,c,d,e,f,g,h,i,j,k)
+
+# Creating the data frame from the two vectors
+biodata <- data.frame(taxa_f, richness)
+
+# Saving the file
+write.csv(biodata, file="biodata.csv")  # it will be saved in your working directory
+
+barplot(biodata$richness)
+```
+
+### Challenge Section
+   Save barplot of wingspan to computer
+```{r}
+# Calculate the mean wingspan for each bird species. The function to do that is simply: mean()
+sparrow <- mean(22, 24, 21)
+kingfisher <- mean(26, 23, 25)
+eagle <- mean(195, 201, 185)
+hummingbird <- mean(8, 9, 9)
+
+# Chain them together in a vector
+wingspan <- c(sparrow, kingfisher, eagle, hummingbird)
+
+# Create a bird species vector (careful to match the order of the previous vector!)
+bird_sp <- c("sparrow", "kingfisher", "eagle", "hummingbird")
+# notice how we put quotation marks around the names. It's because we're creating (character) values; writing sparrow without the "" would call the object we created in the code above, which would return the value 22!
+
+# Bird species is currently in character form, but it should be a factor. Let's fix that:
+# (To be honest it does not make any difference to the output here, but it would for some other types of plot. Take good habits early!)
+class(bird_sp)                      # currently character
+bird_sp <- as.factor(bird_sp)       # transforming into factor
+class(bird_sp)                      # now a factor! 
+
+
+# Then, combine the two vectors in a data frame
+wings <- data.frame(bird_sp, wingspan)
+
+# Plot the bar plot & save it to file
+
+png("wingspan_plot.png", width=800, height=600)
+barplot(wings$wingspan, names.arg = wings$bird_sp,    # notice how we call the bird_sp column instead of typing all the names
+        xlab = "Bird species", 
+        ylab = "Average wingspan (cm)",               # adding axis titles
+        ylim = c(0, 200),                             # setting the limits of the y axis to fit the eagle
+        col = "gold"                                  # changing the colour because why not!
+        )
+dev.off()
+```
+ 
+##########################################################
+#Intro to R 2: Troubleshooting R 
+
+Common errors 
+   R not being updated 
+   Syntax 
+   R cant recognize function 
+  
+  use package::function (ie dplyr::filter) to return info 
+  
+  if problem with for loops 
+    good to use R's debugging tool 
+    
+   Data not in right format
+      use str()
+      or summary() to check types of variables 
+      
+      
+  Save versions of scripts in case R crashes - check out git tutorial 
+  
+  if you press insert on keyboard code gets overwritten
+  
+  To fix do help with package name or google 
+  
+  
+
+
+
+

@@ -1,0 +1,194 @@
+---
+title: "R Tutorials: Using R Markdown"
+author: "Chros LeBoa"
+date: "8/2/2019"
+output: word_document
+---
+
+## R Markdown 
+
+The tutorial for  <http://rmarkdown.rstudio.com>.
+The book on r Markdown: I should consult this for any more questions I might have 
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document.
+
+Code chunks are deliniated with ```{r} and three more of those things to close it  
+```{r cars}
+summary(cars)
+```
+
+
+### To add code chunks Press Command, Option and I 
+there is also an add chunk command in the tool bar 
+
+inside a code chunk {} can use 
+  incclude = false - chunk will not be in final doc
+  echo = false - code is not presented but the results are in doc 
+  message = false - no messages from code in final doc 
+  warning =flase - no warnings will show in final 
+  fig.cap ="" will add a caption to any figures in final doc 
+  
+  for example
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+  
+Global options apply to all code chunks 
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Inline Code
+  You can insert functions by using `r` followed by the function name or dataframe name -- have multiple defs for same code and then uncomment the one you want to try in the function 
+  R will include results of code and apply yext but not the code 
+  
+  
+R markdown can add code in bash and python + others 
+To use another language use ```{CODE LANGUAGE NAME} insteaf of just R 
+You can still use the code chunks 
+
+#Parameters: 
+They are good to use when want to do the same report with different datasets for dif regions or specific period of time 
+  you can use the params: command to determine parameters to determine which dataset to use  
+  use params$<parameter name> to call dataset or other parameters 
+  can use render that will use a new set of parameters 
+if you use knit with parameters button in dropdown menu it will let you preview the visualization with different parameters 
+
+#Tables 
+Usually in normal R formatting but can use knitr::kable to make fancier tables 
+Make sure to use results = "asis" to keep knitr from doing too much formatting 
+
+Somw foos options for making tables 
+* [xtable](https://cran.r-project.org/web/packages/xtable/)
+* [stargazer](https://cran.r-project.org/web/packages/stargazer/)
+* [pander](http://rapporter.github.io/pander/)
+* [tables](https://cran.r-project.org/web/packages/tables/)
+* [ascii](http://eusebe.github.io/ascii/)
+* etc.
+
+Table code is here 
+```{r echo = TRUE, results = 'asis'}
+library(knitr)
+kable(mtcars[1:5, ], caption = "A knitr kable.")
+```
+
+Use Pandoc Markdown to deal with headers, footers, etc 
+it says to check out the options in the R markdown general guide
+
+*italics*
+**bold**
+`code`
+[links](https://rmarkdown.rstudio.com/lesson-8.html)
+
+can also make equations $a=1+2$
+and bibliographies []
+
+#Output 
+  use Render command or go up to the knit menu above 
+  in render use output = "pdf" "word_document" or other things 
+  
+Document examples
+html_notebook ⧉ - Interactive R Notebooks
+html_document ⧉ - HTML document w/ Bootstrap CSS
+pdf_document ⧉ - PDF document (via LaTeX template)
+word_document ⧉ - Microsoft Word document (docx)
+odt_document ⧉ - OpenDocument Text document
+rtf_document ⧉ - Rich Text Format document
+md_document ⧉ - Markdown document (various flavors)
+Presentations (slides)
+ioslides_presentation ⧉ - HTML presentation with ioslides
+revealjs::revealjs_presentation ⧉ - HTML presentation with reveal.js
+slidy_presentation ⧉ - HTML presentation with W3C Slidy
+beamer_presentation ⧉ - PDF presentation with LaTeX Beamer
+powerpoint_presentation ⧉: PowerPoint presentation
+More
+flexdashboard::flex_dashboard - Interactive dashboards
+tufte::tufte_handout ⧉ - PDF handouts in the style of Edward Tufte
+tufte::tufte_html ⧉ - HTML handouts in the style of Edward Tufte
+tufte::tufte_book ⧉ - PDF books in the style of Edward Tufte
+html_vignette ⧉ - R package vignette (HTML)
+github_document - GitHub Flavored Markdown document
+
+#R_Notebooks
+  R markdown has a notebook type that 
+  way more infor here https://bookdown.org/yihui/rmarkdown/notebook.html
+  but it allows for iteration of code 
+  
+  ###use output:html_notebook to save as a notebook 
+  if want normal console can choose chunk output in console 
+  
+  In morkdown chunk is sent at once but in notebook only one line at a time 
+  can use fig.width, fig.heigt and fig.asp to change the size of figures in the notebook 
+  Graphs appear inline unless set up viewer
+  
+rmd_stub = "examples/r-notebook-stub.Rmd"
+cat(readLines(rmd_stub), sep = "\n")
+---
+title: "R Notebook Stub"
+output: html_notebook
+---
+
+```{r chunk-one}
+print("Hello, World!")
+```
+  
+#Presentations
+can save as ppt, or other types of slides 
+use *** to make manual slide break 
+use >- to make bullets 
+
+#Dashboards 
+can hve dashboards that have multiple types of information on them 
+[file here](https://rstudio.cloud/project/181966)
+
+Each # begins a new page in dashboard 
+each ## begins a new column 
+each ### begins new box 
+
+can use{.sidebar} to make more chanes 
+There is a whole seperate training on flexidash that i can check out later 
+[flexidash](https://rmarkdown.rstudio.com/flexdashboard/using.html)
+
+**This would be cool to report the number of studies wrong for Kristen 
+
+each thing in a dashboard has a notes componant 
+use > to add notes after it 
+
+Within flexidash can also make storyboards with the data 
+*** adds commentary next to the code you are making 
+
+[can make websites too](https://bookdown.org/yihui/rmarkdown/rmarkdown-site.html)
+
+#Interactive docs
+Can use Java to make interactive visualizations - allows to look at maps or other things 
+
+[example](https://rstudio.cloud/project/181983)
+
+##Leaflet 
+seems really cool and has been used for a lot of visualizations
+[Leaflet Link](http://rstudio.github.io/leaflet/) It is an API that can be opened in R 
+--> I will take notes on it in a seperate document 
+
+##Shiny 
+
+A method of making web maps using R 
+use runtime:shiny to start a shiny app 
+
+[Shiny example](https://rstudio.cloud/project/181983)
+
+For other tutorial on Shiny use [this link](http://shiny.rstudio.com/)
+
+#Cheatsheets 
+are built into the help window of R markdown
+
+
+
+
+
+
+

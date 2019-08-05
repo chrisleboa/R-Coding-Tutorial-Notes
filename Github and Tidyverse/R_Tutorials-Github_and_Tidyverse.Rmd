@@ -1,0 +1,42 @@
+---
+title: "R Tutorial: Github and Tidyverse"
+author: Chris LeBoa 
+date: 05082019
+output: html_notebook
+---
+# Github and Tidyverse
+
+
+This tutorial was taken from our coding club from Univ of Ettinburough
+
+I lost the notes I was taking on it at first 
+Basically Github is great and allows for version control 
+
+With new repo you 
+commit - publish firle to Github for 1st time 
+pull - take file from github 
+push - put changes on file up onto Github 
+
+
+This project is synced with Github
+
+##Once is synced there are changes on the doc 
+  Top left - working directory name 
+  Top right - new git tab - allows for version control 
+  Bottom Right - all files from github are now on computer too 
+  
+  I am having problems with Git not wanting to see the files I am working on 
+  
+  
+
+
+```{r}
+plot(cars)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
