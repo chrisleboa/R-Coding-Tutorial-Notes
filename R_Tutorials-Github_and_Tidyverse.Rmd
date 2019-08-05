@@ -1,10 +1,10 @@
 ---
-title: "R Tutorial: Github"
+title: "R Tutorial: Github and Tidyverse"
 author: Chris LeBoa 
 date: 05082019
 output: html_notebook
 ---
-# Github 
+# Github and Tidyverse
 
 
 This tutorial was taken from our coding club from Univ of Ettinburough
@@ -34,16 +34,577 @@ This project is synced with Github
   
   Use fork to copy a github repository to anotehr github account
   
+#Tidyverse 
 
+Supposed to make Data easier to work with 
+Need to load some packages that are within the universe seperately
+
+###Libraries 
+```{r}
+# Install Packages ----
+install.packages("ggExtra")
+install.packages("maps")
+installed.packages("gridExtra")
+
+
+# Load Packages ----
+library(tidyverse)  # Hadley Wickham's tidyverse - the theme of this tutorial
+library(broom)  # To summarise model outputs
+library(ggExtra)  # To make pretty graphs - addon package to ggplot2
+library(maps)  # To make pretty maps - warning: maps masks map from purr!
+library(RColorBrewer)  # To make pretty colours
+library(gridExtra)  # To arrange multi-plot panels
+```
+#Making graphs in ggplot 2 
+
+ggplot seems like the bset way to make graphs in R 
+Instead of using a lot of theme comments can make a function 
+
+Benefit of function is that it can then be applied later on without having to be rewritten 
+
+###Functions 
+```{r}
+# Setting a custom ggplot2 function ---
+# *** Functional Programming ***
+# This function makes a pretty ggplot theme
+# This function takes no arguments!
+theme_LPD <- function(){
+  theme_bw()+
+    theme(axis.text.x = element_text(size = 12, vjust = 1, hjust = 1),
+          axis.text.y = element_text(size = 12),
+          axis.title.x = element_text(size = 14, face = "plain"),             
+          axis.title.y = element_text(size = 14, face = "plain"),             
+          panel.grid.major.x = element_blank(),                                          
+          panel.grid.minor.x = element_blank(),
+          panel.grid.minor.y = element_blank(),
+          panel.grid.major.y = element_blank(),  
+          plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), units = , "cm"),
+          plot.title = element_text(size = 20, vjust = 1, hjust = 0.5),
+          legend.text = element_text(size = 12, face = "italic"),          
+          legend.title = element_blank(),                              
+          legend.position = c(0.5, 0.8))
+}
+```
+###Load Data 
+```{r}
+# Load data ----
+load("/Users/ChrisLeBoa/Documents/R_Scripts/Learning R Better/R Tutorials/Github and Tidyverse/CC-Ghent-master/LPDdata_Feb2016.RData")
+
+# Inspect data ----
+head(LPDdata_Feb2016)
+
+# Format data for analysis ----
+
+# Transform from wide to long format usign gather (opposite is spread)
+# *** gather() function from the dplyr package in the tidyverse ***
+LPD_long <- gather(data = LPDdata_Feb2016, key = "year", value = "pop", select = 26:70)
+
+```
+In the new long dataset the Year variable was made a character - use parse to make it a number and remove the X's 
+
+Also should rename the data 
+
+###Format Data 
+```{r}
+# Get rid of the X in front of years
+# *** parse_number() from the readr package in the tidyverse ***
+LPD_long$year <- parse_number(LPD_long$year)
+
+# Rename variable names for consistency
+names(LPD_long)
+names(LPD_long) <- tolower(names(LPD_long))
+names(LPD_long)
+
+# Create new column with genus and species together
+LPD_long$species.name <- paste(LPD_long$genus, LPD_long$species, sep = " ")
+
+# Get rid of strange characters like " / "
+LPD_long$country.list <- gsub(",", "", LPD_long$country.list, fixed = TRUE)
+LPD_long$biome <- gsub("/", "", LPD_long$biome, fixed = TRUE)
+
+# Examine the tidy data frame
+head(LPD_long)
+```
+#Data Manipulation 
+
+Piping is the easiest way to manipulate data 
+ each %>% allows for a manipulation and uses the outcome of the one previously 
+ 
+```{r}
+# Data manipulation ----
+
+# *** piping from from dplyr
+LPD_long2 <- LPD_long %>%
+  # Remove duplicate rows
+  # *** distinct() function from dplyr
+  distinct(LPD_long) %>%
+  # remove NAs in the population column
+  # *** filter() function from dplyr
+  filter(is.finite(pop)) %>%
+  # Group rows so that each group is one population
+  # *** group_by() function from dplyr
+  group_by(id) %>%  
+  # Make some calculations
+  # *** mutate() function from dplyr
+  mutate(maxyear = max(year), minyear = min(year),
+         # Calculate duration
+         duration = maxyear - minyear,
+         # Scale population trend data
+         scalepop = (pop - min(pop))/(max(pop) - min(pop))) %>%
+  # Keep populations with >5 years worth of data and calculate length of monitoring
+  filter(is.finite(scalepop),
+         length(unique(year)) > 5) %>%
+  # Remove any groupings you've greated in the pipe
+  ungroup()
+```
+This section stores some summary statistics in a new data frame 
+
+```{r}
+# Calculate summary statistics for each biome
+LPD_biome_sum <- LPD_long2 %>%
+  # Group by biome
+  group_by(biome) %>%
+  # Create columns, number of populations
+  #  *** summarise()/summarize() function from dplyr in the tidyverse ***
+  summarise(populations = n(),   
+            # Calculate the mean study length
+            mean_study_length_years = mean(duration),
+            # Model sampling method
+            dominant_sampling_method = names(which.max(table(sampling.method))),
+            # Model unit type
+            dominant_units = names(which.max(table(units)))) %>%
+  # Remove any groupings you've greated in the pipe
+  ungroup()
+
+# Take a look at some of the records
+head(LPD_biome_sum)
+```
+Want to do further analysis with just 2 groups 
+
+Use the filter() function to seperate out the groups 
+```{r}
+# Subset to just temperate forest species -----
+  # Notice the difference between | and & when filtering
+  # | is an "or" whereas & is "and", i.e. both conditions have to be met
+  # at the same time
+LPD_long2$biome <- as.factor(LPD_long2$biome)
+LPD.forest <- filter(LPD_long2, biome == "Temperate broadleaf and mixed forests" |
+                                      biome == "Temperate coniferous forests")
+```
+
+# GGPlot2 Basics ----
+
+Basic syntax for ggplot is  ggplot(your_data, aes(x = independent_variable, y = dependent_variable)) then add type of plot want + geom_boxplot(), + geom_histogram()
+
+If want to change color use colour = within aes()
+with the function made above it is inserted as a theme below the rest of the plotting instructions : look for theme LPD below 
+
+put entire thing in () to get it to graph immediately 
 
 
 ```{r}
-plot(cars)
+# Data visualisation ----
+# Data distribution - a histogram
+(forest.hist <- ggplot(LPD.forest, aes(x = scalepop)) +
+   geom_histogram(aes(fill = biome),
+                  position = "identity", colour = "grey40") +
+   geom_vline(aes(xintercept = mean(scalepop)),  # Adding a line for mean abundance
+              colour = "darkred", linetype = "dashed", size = 1) +
+   scale_fill_manual(values = c("#66CD00", "#53868B")) +
+   theme_LPD() +
+   labs(title = "a) Data distribution\n") +
+   guides(fill = F)) # Hiding the legend - this will be a two plot panel
+# thus we don't need the same legend twice
+```
+```{r}
+# Density histogram of duration of studies in the two biomes
+(duration.forests <- ggplot(LPD.forest, aes(duration, colour = biome)) +
+   stat_density(geom = "line", size = 2, position = "identity") +
+   theme_LPD() +
+   scale_colour_manual(values = c("#66CD00", "#53868B")) +
+   labs(x = "\nYears", y = "Density\n", title = "b) Monitoring duration\n"))
+```
+### Arrangement in GGplot
+
+You can put graphs next to each other in ggplot with grid arrange from the gridExtra package - so can put a bunch of figures in a single file 
+```{r}
+# Arrange in a panel and save
+forest.panel <- grid.arrange(forest.hist, duration.forests, ncol = 2)
+ggsave(forest.panel, file = "forest_panel.png", height = 5, width = 10)
+```
+#Further Analysis on Dataset 
+
+A couple notes: 
+  1) when using the lm() function to a pipe --it is a linear model-- it is neccesary to use data = at the end of the function to show that outcome of previous step gets piped 
+  2) It is important to use ungroup() at end of pipe in order to protect dataset from getting changed 
+  
+```{r}
+# Calculate population change for each forest population
+# 1785 models in one go!
+# Using a pipe
+forest.slopes <- LPD.forest %>%
+  # Group by the key variables that we want to interate over
+  group_by(decimal.latitude, decimal.longitude, class, species.name, id, duration, location.of.population) %>%
+  # Create a linear model for each group
+  do(mod = lm(scalepop ~ year, data = .)) %>%
+  # Extract model coefficients using tidy() from the
+  # *** tidy() function from the broom package ***
+  tidy(mod) %>%
+  # Filter out slopes and remove intercept values
+  filter(term == "year") %>%
+  # Get rid of the column term as we don't need it any more
+  #  *** select() function from dplyr in the tidyverse ***
+  dplyr::select(-term) %>%
+  # Remove any groupings you've greated in the pipe
+  ungroup()
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+##Visualize 
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+can use getMarginal() to add things to the sides of graphs which is kind of cool 
+```{r}
+# Visualising model outputs ----
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+# Plotting slope estimates and standard errors for all populations and adding histograms along the margins
+(all.slopes <- ggplot(forest.slopes, aes(x = duration, y = estimate)) +
+         geom_pointrange(aes(ymin = estimate - std.error,
+                             ymax = estimate + std.error),
+                         alpha = 0.3, size = 0.3) +
+         geom_hline(yintercept = 0, linetype = "dashed") +
+         theme_LPD() +
+         ylab("Population change\n") +
+         xlab("\nDuration (years)"))
 
+(density.slopes <- ggExtra::ggMarginal(
+  p = all.slopes,
+  type = 'density',
+  margins = 'both',
+  size = 5,
+  col = 'gray40',
+  fill = 'gray'
+))
+
+# Save the plot
+ggsave(density.slopes, filename = "slopes_duration.png", height = 6, width = 6)
+```
+idk why the graph is spitting out twice like this 
+
+#GGPlot with large datasets ----
+
+### automating iterative commands 
+```{r}
+# PART 2: Using pipes to make figures with large datasets ----
+
+# Make histograms of slope estimates for each taxa -----
+# Set up new folder for figures
+# Set path to relevant path on your computer/in your repository
+path1 <- "Taxa_Forest_LPD/"
+# Create new folder
+dir.create(path1)
+```
+
+group the data by class 
+
+then use do to use that dataset within ggplot 
+
+This section gets an error because it is expecting dataframes but that is ok 
+
+```{r}
+# First we will do this using dplyr and a pipe
+
+forest.slopes %>%
+# Select the relevant data
+dplyr::select(id, class, species.name, estimate) %>%
+# Group by taxa
+group_by(class) %>%
+# Save all plots in new folder
+do(ggsave(ggplot(., aes(x = estimate)) +
+            # Add histograms
+            geom_histogram(colour = "darkgreen", fill = "darkgreen", binwidth = 0.02) +
+            # Use custom theme
+            theme_LPD() +
+            # Add axis lables
+            xlab("Rate of population change (slopes)"),
+            # Set up file names to print to
+            filename = gsub("", "", paste0(path1, unique(as.character(.$class)),
+                                          ".pdf")), device = "pdf"))
+```
+
+#Whenever doing copying and pasting of code it is a good idea to make a function of it 
+
+can apply functions using the purr package 
+
+##Select Data 
+```{r}
+# Here we select the relevant data
+# Let's get rid of the other levels of 'class'
+forest.slopes$class <- as.character(forest.slopes$class)
+# Selecting the relevant data and splitting it into a list
+taxa.slopes <- forest.slopes %>%
+  dplyr::select(id, class, estimate) %>%
+  spread(class, estimate) %>%
+  dplyr::select(-id)
+```
+Then apply this function to the data you want to apply it to 
+use the function within purr map() to apply data to function 
+
+###shows mean per taxa 
+```{r}
+taxa.mean <- purrr::map(taxa.slopes, ~mean(., na.rm = TRUE))
+# This plots the mean population change per taxa
+taxa.mean
+```
+```{r}
+### Intro to the purrr package ----
+
+# First let's write a function to make the plots
+# *** Functional Programming ***
+# This function takes one argument x, the data vector that we want to make a histogram
+plot.hist <- function(x) {
+  ggplot() +
+  geom_histogram(aes(x), colour = "darkgreen", fill = "darkgreen", binwidth = 0.02) +
+  theme_LPD() +
+  xlab("Rate of population change (slopes)")
+}
+```
+This section makes a function that we then apply data to using purr 
+
+```{r}
+taxa.plots <- purrr::map(taxa.slopes, ~plot.hist(.))
+# We need to make a new folder to put these figures in
+path2 <- "Taxa_Forest_LPD_purrr/"
+dir.create(path2)
+```
+
+There is a different way of using purr by putting together the path name and function using walk 2
+this returns only the graph 
+```{r}
+# *** walk2() function in purrr from the tidyverse ***
+walk2(paste0(path2, names(taxa.slopes), ".pdf"), taxa.plots, ggsave)
+```
+#PART 3: Downloading and mapping data from large datasets
+
+#There is a seperate package called coordinate cleaner that helps [verify coordinate data](https://ourcodingclub.github.io/2018/01/06/occurrence.html)
+
+```{r}
+### PART 3: Downloading and mapping data from large datasets ----
+#### How to map distributions and monitoring locations for one or more taxa
+
+#Install Packages ----
+install.packages("rgbif")
+install.packages("rgeos")
+install.packages("ggrepel")
+install.packages("mapdata")
+install.packages("png")
+install.packages("ggthemes")
+# Packages ----
+library(rgbif)  # To extract GBIF data
+# library(CoordinateCleaner)  # To clean coordinates if you want to explore that later
+library(gridExtra)  # To make pretty graphs
+library(ggrepel)  # To add labels with rounded edges
+library(png)  # To add icons
+library(mapdata)  # To plot maps
+library(ggthemes)  # To make maps extra pretty
+```
+
+#Select data you want 
+
+### use the package name :: function in order for functions not to be mixed up 
+
+#The rgbif is a package specifically for getting data from this one site- i think this what an api is but am not sure 
+
+```{r}
+# Download species occurrence records from the Global Biodiversity Information Facility
+# *** rgbif package and the occ_search() function ***
+# You can increase the limit to get more records - 5000 takes a couple of minutes
+deer.locations <- occ_search(scientificName = "Cervus elaphus", limit = 5000,
+                             hasCoordinate = TRUE, return = "data") %>%
+                  # Simplify occurrence data frame
+                  dplyr::select(key, name, decimalLongitude, 
+		                decimalLatitude, year, 
+				individualCount, country)
+```
+
+Extract only the deer population data 
+```{r}
+# Data formatting & manipulation ----
+
+# Filter out population data for chosen species - red deer
+deer.data <- LPD_long2 %>%
+  filter(species.name == "Cervus elaphus") %>%
+  dplyr::select(id, species.name, location.of.population, year, pop)
+
+# Filter out population estimates for chosen species - red deer
+deer.slopes <- forest.slopes %>%
+  filter(species.name == "Cervus elaphus")
+
+```
+
+## Maps in ggplot
+
+mapping can be done using mapdata package 
+geom_point function allows plotting of points on map - in this instance need to use it twice 
+
+```{r}
+# Make an occurrence map and include the locations of the populations part of the Living Planet Database
+(deer.map.LPD <- ggplot(deer.locations, aes(x = decimalLongitude, y = decimalLatitude)) +
+    # Add map data
+    borders("world", colour = "gray80", fill = "gray80", size = 0.3) +
+    # Use custom map theme from ggthemes package
+    theme_map() +
+    # Add the points from the population change data
+    geom_point(alpha = 0.3, size = 2, colour = "aquamarine3") +
+    # Specify where the data come from when plotting from more than one data frame using data = ""
+    geom_point(data = deer.slopes, aes(x = decimal.longitude, y = decimal.latitude),
+               size = 2, colour = "darkgreen"))
+```
+###Getting Fancy with maps 
+
+ggrepel adds labels without overlap + rounded edges 
+```{r}
+# Customising map to make it more beautiful ----
+
+# Check site names
+print(deer.slopes$location.of.population)
+
+# Beautify site names
+deer.slopes$location.of.population <- recode(deer.slopes$location.of.population,
+                                             "Northern Yellowstone National Park" 
+					     = "Yellowstone National Park")
+deer.slopes$location.of.population <- recode(deer.slopes$location.of.population,
+                                             "Mount Rainier National Park, USA" 
+					     = "Mount Rainier National Park")
+deer.slopes$location.of.population <- recode(deer.slopes$location.of.population,
+                                             "Bow Valley - eastern zone, Banff National Park, Alberta" = 
+					     "Banff National Park, Alberta")
+deer.slopes$location.of.population <- recode(deer.slopes$location.of.population,
+                                             "Bow Valley - western zone, Banff National Park, Alberta" = 
+					     "Banff National Park, Alberta")
+deer.slopes$location.of.population <- recode(deer.slopes$location.of.population,
+                                             "Bow Valley - central zone, Banff National Park, Alberta" = 
+					     "Banff National Park, Alberta")
+deer.slopes$location.of.population <- recode(deer.slopes$location.of.population,
+                                             "Study area within Bow Valley, Banff National Park, Alberta" = 
+					     "Banff National Park, Alberta")
+deer.slopes$location.of.population <- recode(deer.slopes$location.of.population,
+                                             "Bow Valley watershed of Banff National Park, Alberta" = 
+					     "Banff National Park, Alberta")
+
+# Load packages for adding images
+packs <- c("png","grid")
+lapply(packs, require, character.only = TRUE)
+
+# Load red deer icon
+icon <- readPNG("reddeer.png")
+icon <- rasterGrob(icon, interpolate = TRUE)
+
+
+```
+
+```{r}
+# Update map
+# Note - this takes a while depending on your computer
+(deer.map.final <- ggplot(deer.locations, aes(x = decimalLongitude, y = decimalLatitude)) +
+    # For more localized maps use "worldHires" instead of "world"
+    borders("world", colour = "gray80", fill = "gray80", size = 0.3) +
+    theme_map() +
+    geom_point(alpha = 0.3, size = 2, colour = "aquamarine3") +
+    # We are specifying the data frame for the labels - one site has three monitored populations
+    # but we only want to label it once so we are subsetting using data = deer.slopes[c(2, 4, 5, 9),]
+    # to get only the first rows number 2, 4, 5 and 9
+    geom_label_repel(data = deer.slopes[c(2, 4, 5, 9),], aes(x = decimal.longitude, y = decimal.latitude,
+                                                     label = location.of.population),
+                     box.padding = 1, size = 5, nudge_x = 1,
+                     # We are specifying the size of the labels and nudging the points so that they
+                     # don't hide data points, along the x axis we are nudging by one
+                     min.segment.length = 0, inherit.aes = FALSE) +
+    # We can recreate the shape of a dropped pin by overlaying a circle and a triangle
+    geom_point(data = deer.slopes, aes(x = decimal.longitude, y = decimal.latitude + 0.6),
+               size = 4, colour = "darkgreen") +
+    geom_point(data = deer.slopes, aes(x = decimal.longitude, y = decimal.latitude - 0.3),
+               size = 3, fill = "darkgreen", colour = "darkgreen", shape = 25) +
+    # Adding the icon using the coordinates on the x and y axis
+    annotation_custom(icon, xmin = -210, xmax = -100, ymin = -60 , ymax = -30) +
+    # Adding a title
+    labs(title = "a. Red Deer GBIF occurrences", size = 12))
+```
+
+```{r}
+# Visualise population trends ----
+# Visualising the population trends of four deer populations
+
+# Let's practice functional programming here
+# *** Functional Programming ***
+# Let's make a function to make the population trend plots
+# First we need to decide what values the function needs to take
+# x - The population data
+# y - the slope value
+# z - the location of the monitoring
+# This function needs to take three arguments
+
+# Let's make the ggplot function
+pop.graph <- function(x, y, z) {
+  # Make a ggplot graph with the 'x'
+  ggplot(x, aes(x = year, y = pop)) +
+  # Shape 21 chooses a point with a black outline filled with aquamarine
+  geom_point(shape = 21, fill = "aquamarine3", size = 2) +
+  # Adds a linear model fit, alpha controls the transparency of the confidence intervals
+  geom_smooth(method = "lm", colour = "aquamarine3", fill = "aquamarine3", alpha = 0.4) +
+  # Add the monitoring location 'y' into the plot
+  labs(x = "", y = "Individuals\n", title = paste("c. ", y, "\n"), size = 7) +
+  # Set the y limit to the maximum population for each 'x'
+  ylim(0, max(x$pop)) +
+  # Set the x limit to the range of years of data
+  xlim(1970, 2010) +
+  # Add the slope 'y' into the plot
+  annotate("text", x = 1972, y = 0,  hjust = 0, vjust = -2, label = paste("Slope =", z), size = 3) +
+  theme_LPD() +
+  theme(plot.title = element_text(size=12), axis.title.y = element_text(size=10))
+}
+
+```
+```{r}
+# Find all unique ids for red deer populations
+unique(deer.slopes$id)
+
+# Create an object each of the unique populations
+# Deer population 1 - Northern Yellowstone National Park
+deer1 <- filter(deer.data, id == "6395")
+slope_deer1 <- round(deer.slopes$estimate[deer.slopes$id == "6395"],2)
+location_deer1 <- deer.slopes$location.of.population[deer.slopes$id == "6395"]
+yellowstone <- pop.graph(deer1, location_deer1, slope_deer1)
+
+# Deer population 2 - Mount Rainier National Park, USA
+deer2 <- filter(deer.data, id == "3425")
+slope_deer2 <- round(deer.slopes$estimate[deer.slopes$id == "3425"],2)
+location_deer2 <- deer.slopes$location.of.population[deer.slopes$id == "3425"]
+rainier <- pop.graph(deer2, location_deer2, slope_deer2)
+
+# Deer population 3 - Switzerland
+deer3 <- filter(deer.data, id == "11170")
+slope_deer3 <- round(deer.slopes$estimate[deer.slopes$id == "11170"],2)
+location_deer3 <- deer.slopes$location.of.population[deer.slopes$id == "11170"]
+switzerland <- pop.graph(deer3, location_deer3, slope_deer3)
+
+# Deer population 4 - Banff National Park, Alberta (there are more populations here)
+deer4 <- filter(deer.data, id == "4383")
+slope_deer4 <- round(deer.slopes$estimate[deer.slopes$id == "4383"],2)
+location_deer4 <- deer.slopes$location.of.population[deer.slopes$id == "4383"]
+banff <- pop.graph(deer4, location_deer4, slope_deer4)
+```
+```{r}
+# Create panel of all graphs
+# Makes a panel of the map and occurrence plot and specifies the ratio
+# i.e., we want the map to be wider than the other plots
+# suppressWarnings() suppresses warnings in the ggplot call here
+row1 <- grid.arrange(deer.map.final, occurrences, ncol = 2, widths = c(1.96, 1.04))
+# Makes a panel of the four population plots
+row2 <- grid.arrange(yellowstone, rainier, switzerland, banff, ncol = 4, widths = c(1, 1, 1, 1))
+
+# Makes a panel of all the population plots and sets the ratio
+# Stich all of your plots together
+deer.panel <- grid.arrange(row1, row2, nrow = 2, heights = c(1.2, 0.8))
+
+ggsave(deer.panel, filename = "deer_panel2.png", height = 10, width = 15)
+```
+can use kable or pander in RMarkdown 
